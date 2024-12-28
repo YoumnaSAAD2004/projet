@@ -98,7 +98,7 @@ public class CLI {
                         }
                         String fichierSnapshot = args[++i];
 
-                        // Charger le snapshot depuis le fichier
+                        // Charger le snapshot sauvegardé
                         Snapshot snapshotSauvegarde = Snapshot.charger(fichierSnapshot);
 
                         if (snapshotSauvegarde == null) {
@@ -106,12 +106,12 @@ public class CLI {
                             return;
                         }
 
-                        // Créer un snapshot actuel du répertoire
+                        // Créer un snapshot de l'état actuel du répertoire
                         Snapshot snapshotActuel = creerSnapshot(cheminRepertoire);
 
-                        // Comparer les deux snapshots
+                        // Comparer les snapshots
                         Difference differences = snapshotActuel.comparer(snapshotSauvegarde);
-                        System.out.println(differences); // Affiche les différences
+                        System.out.println(differences);
                         break;
 
 

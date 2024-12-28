@@ -3,7 +3,7 @@ package data;
 import java.io.Serializable;
 
 /**
- * Représentee les métadonnées associées à un fichier.
+ * Représente les métadonnées associées à un fichier.
  */
 public class MetaDonnees  implements Serializable {
     private static final long serialVersionUID = 1L;

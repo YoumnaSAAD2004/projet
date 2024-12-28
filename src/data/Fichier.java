@@ -12,7 +12,7 @@ import java.nio.file.Files;
 import java.util.Date;
 
 /**
- * Classee représentant un fichier image avec ses métadonnées et ses statistiques.
+ * Classe représentant un fichier image avec ses métadonnées et ses statistiques.
  */
 public class Fichier implements Serializable {
     private static final long serialVersionUID = 1L;
