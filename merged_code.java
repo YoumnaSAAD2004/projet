@@ -26,7 +26,7 @@ import java.nio.file.Files;
 import java.util.Date;
 
 /**
- * Classee représentant un fichier image avec ses métadonnées et ses statistiques.
+ * Classe représentant un fichier image avec ses métadonnées et ses statistiques.
  */
 public class Fichier implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -230,7 +230,7 @@ package data;
 import java.io.Serializable;
 
 /**
- * Représentee les métadonnées associées à un fichier.
+ * Représente les métadonnées associées à un fichier.
  */
 public class MetaDonnees  implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -666,7 +666,7 @@ public class CLI {
                         }
                         String fichierSnapshot = args[++i];
 
-                        // Charger le snapshot depuis le fichier
+                        // Charger le snapshot sauvegardé
                         Snapshot snapshotSauvegarde = Snapshot.charger(fichierSnapshot);
 
                         if (snapshotSauvegarde == null) {
@@ -674,12 +674,12 @@ public class CLI {
                             return;
                         }
 
-                        // Créer un snapshot actuel du répertoire
+                        // Créer un snapshot de l'état actuel du répertoire
                         Snapshot snapshotActuel = creerSnapshot(cheminRepertoire);
 
-                        // Comparer les deux snapshots
+                        // Comparer les snapshots
                         Difference differences = snapshotActuel.comparer(snapshotSauvegarde);
-                        System.out.println(differences); // Affiche les différences
+                        System.out.println(differences);
                         break;
 
 
@@ -989,88 +989,54 @@ public class ControleurF  implements Serializable {
 // File: ./src/snapshot/Difference.java
 package snapshot;
 
+
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Représente les différences entre deux snapshots.
- */
-public class Difference {
+public class Difference implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     private List<String> fichiersAjoutes;
     private List<String> fichiersSupprimes;
-    private List<String> fichiersModifies;
 
-    /**
-     * Constructeur : initialise des listes vides.
-     */
+    // Constructeur
     public Difference() {
         this.fichiersAjoutes = new ArrayList<>();
         this.fichiersSupprimes = new ArrayList<>();
-        this.fichiersModifies = new ArrayList<>();
     }
 
-    /**
-     * Ajoute un fichier à la liste des fichiers ajoutés.
-     * @param fichier Le nom du fichier ajouté.
-     */
+    // Ajoute un fichier à la liste des fichiers ajoutés
     public void ajouterFichierAjoute(String fichier) {
         fichiersAjoutes.add(fichier);
     }
 
-    /**
-     * Ajoute un fichier à la liste des fichiers supprimés.
-     * @param fichier Le nom du fichier supprimé.
-     */
+    // Ajoute un fichier à la liste des fichiers supprimés
     public void ajouterFichierSupprime(String fichier) {
         fichiersSupprimes.add(fichier);
     }
 
-    /**
-     * Ajoute un fichier à la liste des fichiers modifiés.
-     * @param fichier Le nom du fichier modifié.
-     */
-    public void ajouterFichierModifie(String fichier) {
-        fichiersModifies.add(fichier);
-    }
-
-    /**
-     * Retourne une représentation textuelle des différences.
-     * @return String décrivant les différences.
-     */
+    // Afficher les différences
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
 
         sb.append("=== Différences détectées ===\n");
 
-        // Fichiers ajoutés
         sb.append("Fichiers ajoutés :\n");
-        if (fichiersAjoutes.isEmpty()) {
-            sb.append("  Aucun fichier ajouté.\n");
-        } else {
-            fichiersAjoutes.forEach(f -> sb.append("  - ").append(f).append("\n"));
+        for (String fichier : fichiersAjoutes) {
+            sb.append("  - ").append(fichier).append("\n");
         }
 
-        // Fichiers supprimés
         sb.append("Fichiers supprimés :\n");
-        if (fichiersSupprimes.isEmpty()) {
-            sb.append("  Aucun fichier supprimé.\n");
-        } else {
-            fichiersSupprimes.forEach(f -> sb.append("  - ").append(f).append("\n"));
-        }
-
-        // Fichiers modifiés
-        sb.append("Fichiers modifiés :\n");
-        if (fichiersModifies.isEmpty()) {
-            sb.append("  Aucun fichier modifié.\n");
-        } else {
-            fichiersModifies.forEach(f -> sb.append("  - ").append(f).append("\n"));
+        for (String fichier : fichiersSupprimes) {
+            sb.append("  - ").append(fichier).append("\n");
         }
 
         return sb.toString();
     }
 }
+
 
 // File: ./src/snapshot/Snapshot.java
 package snapshot;
@@ -1078,119 +1044,78 @@ package snapshot;
 
 import data.Repertoire;
 import data.Fichier;
+
 import java.io.*;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
-/**
- * Représente un état (snapshot) d'un répertoire à un instant donné.
- */
 public class Snapshot implements Serializable {
 
-    private static final long serialVersionUID = 1L; // Identifiant pour la sérialisation
-    private Repertoire repertoire; // Répertoire capturé
-    private String dateSnapshot; // Date de création du snapshot
+    private static final long serialVersionUID = 1L;
+    private Repertoire repertoire;
+    private String dateSnapshot;
 
-    /**
-     * Constructeur pour capturer un snapshot d'un répertoire.
-     *
-     * @param repertoire Le répertoire capturé.
-     * @param dateSnapshot La date de création du snapshot.
-     */
+    // Constructeur
     public Snapshot(Repertoire repertoire, String dateSnapshot) {
         this.repertoire = repertoire;
         this.dateSnapshot = dateSnapshot;
     }
 
-    /**
-     * Sauvegarder le snapshot dans un fichier binaire.
-     *
-     * @param cheminFichier Le chemin du fichier où sauvegarder le snapshot.
-     */
+    // Sauvegarder le snapshot dans un fichier binaire
     public void sauvegarder(String cheminFichier) {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(cheminFichier))) {
             oos.writeObject(this);
-            System.out.println("Snapshot sauvegardé avec succès dans : " + cheminFichier);
+            System.out.println("Snapshot sauvegardé dans : " + cheminFichier);
         } catch (IOException e) {
             System.err.println("Erreur lors de la sauvegarde du snapshot : " + e.getMessage());
         }
     }
 
-    /**
-     * Charger un snapshot à partir d'un fichier binaire.
-     *
-     * @param cheminFichier Le chemin du fichier à charger.
-     * @return L'objet Snapshot chargé ou null en cas d'erreur.
-     */
+    // Charger un snapshot depuis un fichier binaire
     public static Snapshot charger(String cheminFichier) {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(cheminFichier))) {
             return (Snapshot) ois.readObject();
-        } catch (FileNotFoundException e) {
-            System.err.println("Erreur : Fichier snapshot introuvable : " + cheminFichier);
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Erreur lors du chargement du snapshot : " + e.getMessage());
         }
         return null;
     }
 
-    /**
-     * Comparer deux snapshots pour détecter les différences.
-     *
-     * @param ancienSnapshot Le snapshot précédent à comparer.
-     * @return Un objet Difference contenant les ajouts, suppressions et modifications.
-     */
+    // Comparer deux snapshots pour détecter les différences
     public Difference comparer(Snapshot ancienSnapshot) {
         Difference difference = new Difference();
 
-        // Conversion des fichiers actuels et anciens en ArrayList
-        ArrayList<Fichier> actuelsFichiers = new ArrayList<>(this.repertoire.getFichiers());
-        ArrayList<Fichier> anciensFichiers = new ArrayList<>(ancienSnapshot.repertoire.getFichiers());
+        List<Fichier> anciensFichiers = ancienSnapshot.getRepertoire().getFichiers();
+        List<Fichier> actuelsFichiers = this.repertoire.getFichiers();
 
-        // Identifier les fichiers ajoutés
+        // Fichiers ajoutés
         for (Fichier actuel : actuelsFichiers) {
             boolean existe = anciensFichiers.stream()
-                    .anyMatch(ancien -> ancien.getNom().equals(actuel.getNom()) && ancien.getStatistiques().getTaille() == actuel.getStatistiques().getTaille());
+                    .anyMatch(ancien -> ancien.getNom().equals(actuel.getNom()));
             if (!existe) {
                 difference.ajouterFichierAjoute(actuel.getNom());
             }
         }
 
-        // Identifier les fichiers supprimés
+        // Fichiers supprimés
         for (Fichier ancien : anciensFichiers) {
             boolean existe = actuelsFichiers.stream()
-                    .anyMatch(actuel -> actuel.getNom().equals(ancien.getNom()) && actuel.getStatistiques().getTaille() == ancien.getStatistiques().getTaille());
+                    .anyMatch(actuel -> actuel.getNom().equals(ancien.getNom()));
             if (!existe) {
                 difference.ajouterFichierSupprime(ancien.getNom());
             }
         }
 
-        // Identifier les fichiers modifiés
-        for (Fichier actuel : actuelsFichiers) {
-            anciensFichiers.stream()
-                    .filter(ancien -> ancien.getNom().equals(actuel.getNom()) && ancien.getStatistiques().getTaille() != actuel.getStatistiques().getTaille())
-                    .forEach(ancien -> difference.ajouterFichierModifie(actuel.getNom()));
-        }
-
         return difference;
     }
 
-    // Getters et Setters
-
+    // Getters
     public Repertoire getRepertoire() {
         return repertoire;
     }
 
-    public void setRepertoire(Repertoire repertoire) {
-        this.repertoire = repertoire;
-    }
-
     public String getDateSnapshot() {
         return dateSnapshot;
-    }
-
-    public void setDateSnapshot(String dateSnapshot) {
-        this.dateSnapshot = dateSnapshot;
     }
 }
 
