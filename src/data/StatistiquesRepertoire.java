@@ -1,11 +1,11 @@
 package data;
 
 import java.util.List;
+import java.io.Serializable;
 
-/**
- * Classe représentant les statistiques d'un répertoire contenant des fichiers image.
- */
-public class StatistiquesRepertoire {
+public class StatistiquesRepertoire implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private List<Fichier> fichiersImage; // Liste des fichiers image dans le répertoire
 
     /**

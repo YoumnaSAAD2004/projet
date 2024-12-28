@@ -2,12 +2,11 @@ package data;
 
 
 
-import java.io.IOException;
+import java.io.Serializable;
 
-/**
- * Représente les statistiques d'un fichier, y compris son nom, chemin, type MIME, taille et date de dernière modification.
- */
-public class StatistiquesFichier {
+public class StatistiquesFichier implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     // Attributs principaux
     private int taille; // Taille du fichier en octets
     private String typeMime; // Type MIME du fichier

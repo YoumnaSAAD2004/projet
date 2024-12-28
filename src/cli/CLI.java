@@ -74,15 +74,19 @@ public class CLI {
 
                         // Commande pour sauvegarder un snapshot
                     case "--snapshotsave":
-                        if (i + 1 >= args.length) {
-                            System.out.println("Erreur : Vous devez spécifier un nom de fichier pour le snapshot.");
-                            return;
+                        String nomSnapshotSave;
+                        if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
+                            // Utiliser le nom fourni par l'utilisateur
+                            nomSnapshotSave = args[++i];
+                        } else {
+                            // Générer un nom de fichier par défaut
+                            nomSnapshotSave = "snapshot.ser";
+                            System.out.println("Aucun nom spécifié, le snapshot sera sauvegardé avec le nom : " + nomSnapshotSave);
                         }
-                        String nomSnapshotSave = args[++i];
                         try {
                             Snapshot snapshot = creerSnapshot(cheminRepertoire); // Capture l'état du répertoire
                             snapshot.sauvegarder(nomSnapshotSave); // Sauvegarde dans un fichier
-                            System.out.println("Snapshot sauvegardé avec succès dans : " + nomSnapshotSave);
+                            System.out.println("Snapshot sauvegardé avec succès dans : " + new File(nomSnapshotSave).getAbsolutePath());
                         } catch (IOException e) {
                             System.err.println("Erreur lors de la sauvegarde du snapshot : " + e.getMessage());
                         }
