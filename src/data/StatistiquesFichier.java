@@ -52,7 +52,14 @@ public class StatistiquesFichier implements Serializable {
         return this.typeMime; // Assuming `typeMime` stores the MIME type
     }
     public String getAnneeModification() {
-        return dateModification.split(" ")[5]; // Vérifiez le format exact de la date
+        // Utilise directement la dernière partie de la date pour extraire l'année
+        try {
+            String[] parts = dateModification.split(" ");
+            return parts[parts.length - 1]; // Retourne le dernier élément (l'année)
+        } catch (Exception e) {
+            System.err.println("Erreur lors de l'extraction de l'année : " + e.getMessage());
+            return "inconnue";
+        }
     }
 
 

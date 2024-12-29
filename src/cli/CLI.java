@@ -46,6 +46,7 @@ public class CLI {
             return;
         }
 
+        // Récupération du chemin du répertoire
         String cheminRepertoire = args[1];
         File repertoireFile = new File(cheminRepertoire);
 
@@ -55,7 +56,8 @@ public class CLI {
         }
 
         Repertoire repertoire = new Repertoire(cheminRepertoire);
-     // Déclaration des filtres par défaut
+
+        // Initialisation des filtres
         String filtreNom = null;
         Integer filtreAnnee = null;
         int[] filtreDimensions = null;
@@ -71,6 +73,26 @@ public class CLI {
                 filtreNom = args[i].substring("--name=".length());
             }
         }
+
+        try {
+            // Parcourir le répertoire pour collecter tous les fichiers
+            repertoire.parcourirRepertoire(repertoireFile);
+
+            // Utiliser le contrôleur pour rechercher les fichiers filtrés
+            ControleurR controleurR = new ControleurR();
+            List<Fichier> fichiersFiltres = controleurR.rechercherFichiers(repertoire, filtreNom, filtreAnnee, filtreDimensions);
+
+            // Affichage des fichiers filtrés
+            if (fichiersFiltres.isEmpty()) {
+                System.out.println("Aucun fichier ne correspond aux critères spécifiés.");
+            } else {
+                System.out.println("Fichiers correspondants :");
+                fichiersFiltres.forEach(System.out::println);
+            }
+        } catch (IOException e) {
+            System.err.println("Erreur lors de l'analyse du répertoire : " + e.getMessage());
+        }
+
 
 
         try {
