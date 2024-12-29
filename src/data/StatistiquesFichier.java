@@ -48,6 +48,11 @@ public class StatistiquesFichier implements Serializable {
         return dateModification;
     }
 
+    public String getType() {
+        return this.typeMime; // Assuming `typeMime` stores the MIME type
+    }
+
+
     /**
      * Retourne une représentation textuelle des statistiques du fichier.
      * @return Les statistiques formatées sous forme de chaîne.

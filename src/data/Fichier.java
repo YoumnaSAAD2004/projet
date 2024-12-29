@@ -10,10 +10,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.util.Date;
+import java.util.Objects;
 
-/**
- * Classe représentant un fichier image avec ses métadonnées et ses statistiques.
- */
 public class Fichier implements Serializable {
     private static final long serialVersionUID = 1L;
     private File file; // Instance de File représentant le fichier
@@ -21,22 +19,13 @@ public class Fichier implements Serializable {
     private StatistiquesFichier statistiques; // Statistiques associées au fichier
     private MetaDonnees metaDonnees; // Métadonnées associées au fichier
 
-    /**
-     * Constructeur.
-     * Initialise le fichier, son nom, ses métadonnées et ses statistiques.
-     * @param file Le fichier à manipuler.
-     */
     public Fichier(File file) {
         this.file = file;
-        this.nom = file.getName(); // Initialise le nom du fichier
-        this.metaDonnees = extraireMetaDonnees(); // Extrait les métadonnées du fichier
-        this.statistiques = calculerStatistiques(); // Calcule les statistiques du fichier
+        this.nom = file.getName();
+        this.metaDonnees = extraireMetaDonnees();
+        this.statistiques = calculerStatistiques();
     }
 
-    /**
-     * Calcule les statistiques du fichier.
-     * @return Un objet StatistiquesFichier contenant les statistiques.
-     */
     private StatistiquesFichier calculerStatistiques() {
         try {
             String typeMime = Files.probeContentType(file.toPath());
@@ -49,10 +38,6 @@ public class Fichier implements Serializable {
         }
     }
 
-    /**
-     * Extrait les métadonnées du fichier.
-     * @return Un objet MetaDonnees contenant les informations extraites.
-     */
     private MetaDonnees extraireMetaDonnees() {
         MetaDonnees metaDonnees = new MetaDonnees();
         try {
@@ -63,7 +48,6 @@ public class Fichier implements Serializable {
                     String tagName = tag.getTagName();
                     String tagValue = tag.getDescription();
 
-                    // Extraction des métadonnées pertinentes
                     switch (tagName) {
                         case "Image Width":
                             metaDonnees.getDimensions()[0] = Integer.parseInt(tagValue.replaceAll("\\D+", ""));
@@ -101,33 +85,46 @@ public class Fichier implements Serializable {
         return metaDonnees;
     }
 
-    /**
-     * Vérifie si le type MIME du fichier est valide.
-     * @return true si le type MIME est valide, false sinon.
-     */
     public boolean verifierTypeMIME() {
         String type = statistiques.getTypeMime();
         return type.equals("image/jpeg") || type.equals("image/png") || type.equals("image/webp");
     }
 
-    // Getters
     public String getNom() {
         return nom;
     }
 
     public StatistiquesFichier getStatistiques() {
-        if (this.statistiques == null) {
-            this.statistiques = calculerStatistiques();
-        }
-        return this.statistiques;
+        return statistiques;
     }
-
 
     public MetaDonnees getMetaDonnees() {
         return metaDonnees;
     }
 
-    // toString
+    // Nouvelle méthode : Retourne le chemin relatif du fichier
+    public String getCheminRelatif() {
+        return file.getPath();
+    }
+
+    // Méthode equals pour comparaison dans Difference
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Fichier fichier = (Fichier) o;
+        return Objects.equals(getCheminRelatif(), fichier.getCheminRelatif());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getCheminRelatif());
+    }
+    public StatistiquesFichier getStatFichier() {
+        return this.statistiques; // Si `statistiques` est l'attribut de type `StatistiquesFichier`.
+    }
+
+
     @Override
     public String toString() {
         return "Fichier{" +
@@ -137,5 +134,3 @@ public class Fichier implements Serializable {
                 '}';
     }
 }
-
-
