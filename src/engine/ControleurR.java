@@ -6,6 +6,7 @@ import data.Fichier;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Classe de contrôle pour les opérations liées aux répertoires.
@@ -50,6 +51,11 @@ public class ControleurR  implements Serializable {
         // Crée un objet StatistiquesRepertoire basé sur la liste complète des fichiers
         return new StatistiquesRepertoire(tousFichiers);
     }
+    
+    public List<Fichier> rechercherFichiers(Repertoire repertoire, String nomPartiel, Integer annee, int[] dimensions) {
+        return repertoire.rechercherFichiers(nomPartiel, annee, dimensions);
+    }
+
 
     /**
      * Affiche les statistiques d'un répertoire et de ses sous-répertoires.

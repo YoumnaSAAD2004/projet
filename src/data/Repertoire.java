@@ -117,6 +117,49 @@ public class Repertoire implements Serializable {
         }
         return null; // Retourne null si aucun fichier ne correspond
     }
+    
+    public List<Fichier> rechercherFichiers(String nomPartiel, Integer annee, int[] dimensions) {
+        List<Fichier> resultats = new ArrayList<>();
+
+        // Parcourir les fichiers dans le répertoire courant
+        for (Fichier fichier : fichiers) {
+            boolean correspond = true;
+
+            // Filtrer par nom
+            if (nomPartiel != null && !fichier.getNom().contains(nomPartiel)) {
+                correspond = false;
+            }
+
+            // Filtrer par année
+            if (annee != null) {
+                String anneeFichier = fichier.getStatistiques().getDateModification().substring(24); // Vérifiez si cela fonctionne
+                if (!anneeFichier.equals(annee.toString())) {
+                    correspond = false;
+                }
+            }
+
+            // Filtrer par dimensions
+            if (dimensions != null) {
+                int[] dimsFichier = fichier.getMetaDonnees().getDimensions();
+                if (dimsFichier[0] != dimensions[0] || dimsFichier[1] != dimensions[1]) {
+                    correspond = false;
+                }
+            }
+
+            if (correspond) {
+                resultats.add(fichier);
+            }
+        }
+
+        // Chercher dans les sous-répertoires
+        for (Repertoire sousRepertoire : sousRepertoires) {
+            resultats.addAll(sousRepertoire.rechercherFichiers(nomPartiel, annee, dimensions));
+        }
+
+        return resultats;
+    }
+
+
 
     /**
      * Retourne une représentation textuelle du répertoire, incluant le nombre de fichiers et de sous-répertoires.

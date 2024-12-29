@@ -6,6 +6,7 @@ import snapshot.Snapshot;
 import snapshot.Difference;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 public class CLI {
 
@@ -54,6 +55,23 @@ public class CLI {
         }
 
         Repertoire repertoire = new Repertoire(cheminRepertoire);
+     // Déclaration des filtres par défaut
+        String filtreNom = null;
+        Integer filtreAnnee = null;
+        int[] filtreDimensions = null;
+
+        // Parcourir les arguments pour détecter les filtres
+        for (int i = 2; i < args.length; i++) {
+            if (args[i].startsWith("--year=")) {
+                filtreAnnee = Integer.parseInt(args[i].substring("--year=".length()));
+            } else if (args[i].startsWith("--dimension=")) {
+                String[] dims = args[i].substring("--dimension=".length()).split("x");
+                filtreDimensions = new int[]{Integer.parseInt(dims[0]), Integer.parseInt(dims[1])};
+            } else if (args[i].startsWith("--name=")) {
+                filtreNom = args[i].substring("--name=".length());
+            }
+        }
+
 
         try {
             repertoire.parcourirRepertoire(repertoireFile);
@@ -117,6 +135,37 @@ public class CLI {
                         Difference differences = snapshotActuel.comparer(snapshotSauvegarde);
                         System.out.println(differences);
                         break;
+                    case "--search":
+                        String nomRecherche = null;
+                        Integer anneeRecherche = null;
+                        int[] dimensionsRecherche = null;
+
+                        // Récupérer les arguments (par exemple, `--name`, `--year`, `--dim`)
+                        for (int j = i + 1; j < args.length && !args[j].startsWith("--"); j++) {
+                            if (args[j].startsWith("--name=")) {
+                                nomRecherche = args[j].substring(7); // Extrait la valeur après `--name=`
+                            } else if (args[j].startsWith("--year=")) {
+                                anneeRecherche = Integer.parseInt(args[j].substring(7)); // Extrait l'année
+                            } else if (args[j].startsWith("--dim=")) {
+                                String[] dim = args[j].substring(6).split("x");
+                                dimensionsRecherche = new int[]{Integer.parseInt(dim[0]), Integer.parseInt(dim[1])};
+                            }
+                        }
+
+                        // Appeler la méthode rechercherFichiers
+                        List<Fichier> resultatsRecherche = repertoire.rechercherFichiers(nomRecherche, anneeRecherche, dimensionsRecherche);
+
+                        // Afficher les résultats
+                        if (resultatsRecherche.isEmpty()) {
+                            System.out.println("Aucun fichier ne correspond aux critères spécifiés.");
+                        } else {
+                            System.out.println("Fichiers correspondants :");
+                            for (Fichier fichier : resultatsRecherche) {
+                                System.out.println(fichier);
+                            }
+                        }
+                        break;
+
 
 
                     default:
@@ -128,6 +177,12 @@ public class CLI {
         } catch (IOException e) {
             System.err.println("Erreur lors de l'analyse du répertoire : " + e.getMessage());
         }
+        ControleurR controleurR = new ControleurR();
+        List<Fichier> fichiersFiltres = controleurR.rechercherFichiers(repertoire, filtreNom, filtreAnnee, filtreDimensions);
+
+        System.out.println("Fichiers filtrés :");
+        fichiersFiltres.forEach(System.out::println);
+
     }
     
     private static Snapshot creerSnapshot(String cheminRepertoire) throws IOException {
@@ -175,6 +230,7 @@ public class CLI {
                     System.out.println("Statistiques du fichier :");
                     System.out.println(fichier.getStatistiques().toString());
                     break;
+                 
 
                 case "-i":
                 case "--info":

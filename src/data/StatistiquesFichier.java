@@ -51,6 +51,10 @@ public class StatistiquesFichier implements Serializable {
     public String getType() {
         return this.typeMime; // Assuming `typeMime` stores the MIME type
     }
+    public String getAnneeModification() {
+        return dateModification.split(" ")[5]; // Vérifiez le format exact de la date
+    }
+
 
 
     /**
