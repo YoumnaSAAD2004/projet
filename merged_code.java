@@ -1127,6 +1127,502 @@ public class ControleurF  implements Serializable {
 }
 
 
+// File: ./src/GUI/GUIOrganisation.java
+package GUI;
+
+import data.Fichier;
+import data.MetaDonnees;
+import data.Repertoire;
+import data.StatistiquesRepertoire;
+import snapshot.Snapshot;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Class to manage the core functionalities of the application via the GUI.
+ */
+public class GUIOrganisation {
+    private DefaultTableModel tableModel;
+    private List<Fichier> fichiersImage;
+
+    /**
+     * Initialize the manager with the table model.
+     *
+     * @param tableModel Model for displaying files in the table.
+     */
+    public GUIOrganisation(DefaultTableModel tableModel) {
+        this.tableModel = tableModel;
+    }
+
+    /**
+     * Load image files from a directory into the table.
+     *
+     * @param directory Directory to explore.
+     */
+    public void loadDirectory(File directory) {
+        try {
+            Repertoire repertoire = new Repertoire(directory.getName());
+            repertoire.parcourirRepertoire(directory);
+            fichiersImage = repertoire.getFichiers();
+            refreshTable(fichiersImage);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,
+                    "Error accessing directory: " + e.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Search for files by name or year and update the table.
+     *
+     * @param query Search text (name or year).
+     */
+    public void searchFiles(String query) {
+        if (fichiersImage == null || fichiersImage.isEmpty()) {
+            JOptionPane.showMessageDialog(null,
+                    "No files loaded. Please select a directory.",
+                    "Alert", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        List<Fichier> filteredFiles;
+        try {
+            int year = Integer.parseInt(query);
+            filteredFiles = fichiersImage.stream()
+                    .filter(f -> f.getStatistiques().getAnneeModification().equals(String.valueOf(year)))
+                    .collect(Collectors.toList());
+        } catch (NumberFormatException e) {
+            filteredFiles = fichiersImage.stream()
+                    .filter(f -> f.getNom().contains(query))
+                    .collect(Collectors.toList());
+        }
+
+        refreshTable(filteredFiles);
+
+        if (filteredFiles.isEmpty()) {
+            JOptionPane.showMessageDialog(null,
+                    "No files matching the search.",
+                    "Search Results", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    /**
+     * Display global statistics of files.
+     */
+    public void viewStatistics() {
+        if (fichiersImage == null || fichiersImage.isEmpty()) {
+            JOptionPane.showMessageDialog(null,
+                    "No files loaded. Please select a directory.",
+                    "Alert", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        StatistiquesRepertoire stats = new StatistiquesRepertoire(fichiersImage);
+        JOptionPane.showMessageDialog(null,
+                "Global Statistics:\n" +
+                        "Total files: " + stats.getNombreTotalFichiers() + "\n" +
+                        "Valid images: " + stats.getNombreImagesValides() + "\n" +
+                        "PNG images: " + stats.getNombreImagesParFormat(".png") + "\n" +
+                        "JPEG images: " + stats.getNombreImagesParFormat(".jpeg") + "\n" +
+                        "WEBP images: " + stats.getNombreImagesParFormat(".webp"),
+                "Global Statistics", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Display statistics of a selected file.
+     *
+     * @param file File to analyze.
+     */
+    public void viewFileStatistics(File file) {
+        Fichier fichier = findFile(file);
+
+        if (fichier != null) {
+            JOptionPane.showMessageDialog(null,
+                    "File Statistics:\n" +
+                            "Name: " + fichier.getNom() + "\n" +
+                            "Path: " + fichier.getCheminRelatif() + "\n" +
+                            "MIME Type: " + fichier.getStatistiques().getTypeMime() + "\n" +
+                            "Size: " + fichier.getStatistiques().getTaille() + " bytes\n" +
+                            "Last Modified: " + fichier.getStatistiques().getDateModification(),
+                    "File Statistics", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(null,
+                    "Selected file not available.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Display metadata of a selected file.
+     *
+     * @param file File to analyze.
+     */
+    public void viewMetadata(File file) {
+        Fichier fichier = findFile(file);
+
+        if (fichier != null) {
+            MetaDonnees metaDonnees = fichier.getMetaDonnees();
+            JTextArea textArea = new JTextArea(20, 50);
+            textArea.setText(metaDonnees.toString());
+            textArea.setCaretPosition(0);
+            textArea.setEditable(false);
+            JScrollPane scrollPane = new JScrollPane(textArea);
+            JOptionPane.showMessageDialog(null, scrollPane, "File Metadata", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(null,
+                    "Selected file not available.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Save a snapshot of the current state.
+     *
+     * @param path Path of the snapshot file.
+     */
+    public void saveSnapshot(String path) throws IOException {
+        if (fichiersImage == null || fichiersImage.isEmpty()) {
+            JOptionPane.showMessageDialog(null,
+                    "No files loaded. Please select a directory.",
+                    "Alert", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        Snapshot snapshot = new Snapshot(new Repertoire("Snapshot"), path);
+		snapshot.sauvegarder(path);
+		JOptionPane.showMessageDialog(null,
+		        "Snapshot saved successfully.",
+		        "Success", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Compare the current state with a snapshot and display the results.
+     *
+     * @param snapshotFilePath Path of the snapshot file.
+     */
+    public void compareSnapshot(String snapshotFilePath) throws IOException {
+        Snapshot snapshot = Snapshot.charger(snapshotFilePath);
+		if (snapshot == null) {
+		    JOptionPane.showMessageDialog(null,
+		            "Unable to load snapshot.",
+		            "Error", JOptionPane.ERROR_MESSAGE);
+		    return;
+		}
+
+		List<Fichier> snapshotFiles = snapshot.getRepertoire().getFichiers();
+		StringBuilder differences = new StringBuilder();
+
+		// Compare files
+		for (Fichier file : fichiersImage) {
+		    if (!snapshotFiles.contains(file)) {
+		        differences.append("Added: ").append(file.getNom()).append("\n");
+		    }
+		}
+		for (Fichier file : snapshotFiles) {
+		    if (!fichiersImage.contains(file)) {
+		        differences.append("Removed: ").append(file.getNom()).append("\n");
+		    }
+		}
+
+		JTextArea textArea = new JTextArea(differences.toString());
+		textArea.setEditable(false);
+		JScrollPane scrollPane = new JScrollPane(textArea);
+		JOptionPane.showMessageDialog(null, scrollPane, "Snapshot Comparison", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Refresh the table with a list of files.
+     *
+     * @param fichiers List of files to display.
+     */
+    private void refreshTable(List<Fichier> fichiers) {
+        tableModel.setRowCount(0);
+        fichiers.forEach(f -> tableModel.addRow(new Object[]{
+                f.getNom(),
+                f.getStatistiques().getTaille() / 1024, // Size in KB
+                f.getCheminRelatif(),
+                f.getStatistiques().getDateModification()
+        }));
+    }
+
+    /**
+     * Find a file in the current list by its path.
+     *
+     * @param file File to find.
+     * @return The corresponding Fichier object, or null if not found.
+     */
+    private Fichier findFile(File file) {
+        return fichiersImage.stream()
+                .filter(f -> f.getCheminRelatif().equals(file.getAbsolutePath()))
+                .findFirst()
+                .orElse(null);
+    }
+}
+
+
+// File: ./src/GUI/GuiGraphique.java
+package GUI;
+import data.Fichier;
+import data.MetaDonnees;
+import data.Repertoire;
+import data.StatistiquesFichier;
+import data.StatistiquesRepertoire;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.File;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+
+/**
+ * Classe pour gérer l'interface graphique de l'application.
+ * 
+ * Fournit une interface avec une disposition où les boutons sont alignés horizontalement en haut.
+ * 
+ * @author Gaetan et Yanis
+ */
+public class GuiGraphique extends JFrame {
+
+    private JTable tableFiles;
+    private DefaultTableModel tableModel;
+    private JLabel lblImagePreview;
+    private GUIOrganisation manageGUI;
+
+    public GuiGraphique() {
+        setTitle("Projet POO Image et metadonnee");
+        setSize(1900, 500);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        tableModel = new DefaultTableModel(new String[]{"Nom", "Taille (Ko)", "Chemin", "Dernière modification"}, 0);
+        manageGUI = new GUIOrganisation(tableModel);
+
+        setLayout(new BorderLayout(10, 10));
+
+        createTopPanel();
+        createCenterPanel();
+        createBottomPanel();
+    }
+
+    /**
+     * Crée le panneau supérieur avec les boutons alignés horizontalement et la barre de recherche.
+     */
+    /**
+     * Creates the top panel with horizontally aligned buttons.
+     */
+    private void createTopPanel() {
+        JPanel panelTop = new JPanel(new BorderLayout());
+        panelTop.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Section for horizontally aligned buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        JButton btnSelectDirectory = new JButton("Choisir un répertoire");
+        JButton btnViewStatistics = new JButton("Statistiques globales");
+        JButton btnViewFileStatistics = new JButton("Statistiques du fichier");
+        JButton btnViewMetadata = new JButton("Métadonnées");
+        JButton btnSnapshotSave = new JButton("Sauvegarder Snapshot");
+        JButton btnSnapshotCompare = new JButton("Comparer Snapshot");
+
+        btnSelectDirectory.addActionListener(e -> chargerRepertoire());
+        btnViewStatistics.addActionListener(e -> manageGUI.viewStatistics());
+        btnViewFileStatistics.addActionListener(e -> afficherStatsFichier());
+        btnViewMetadata.addActionListener(e -> montrerMetadata());
+        btnSnapshotSave.addActionListener(e -> onSnapshotSave());
+        btnSnapshotCompare.addActionListener(e -> onSnapshotCompare());
+
+        buttonPanel.add(btnSelectDirectory);
+        buttonPanel.add(btnViewStatistics);
+        buttonPanel.add(btnViewFileStatistics);
+        buttonPanel.add(btnViewMetadata);
+        buttonPanel.add(btnSnapshotSave);
+        buttonPanel.add(btnSnapshotCompare);
+
+        panelTop.add(buttonPanel, BorderLayout.CENTER);
+
+        add(panelTop, BorderLayout.NORTH);
+    }
+
+
+    /**
+     * Crée le panneau central pour le tableau des images.
+     */
+    private void createCenterPanel() {
+        JPanel panelCenter = new JPanel(new BorderLayout());
+        panelCenter.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        tableFiles = new JTable(tableModel);
+        tableFiles.setFillsViewportHeight(true);
+
+        tableFiles.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int selectedRow = tableFiles.getSelectedRow();
+                if (selectedRow != -1) {
+                    String filePath = (String) tableModel.getValueAt(selectedRow, 2);
+                    displaySelectedImage(new File(filePath));
+                }
+            }
+        });
+
+        JScrollPane scrollPaneTable = new JScrollPane(tableFiles);
+        panelCenter.add(scrollPaneTable, BorderLayout.CENTER);
+
+        add(panelCenter, BorderLayout.CENTER);
+    }
+
+    /**
+     * Crée le panneau inférieur pour la prévisualisation de l'image.
+     */
+    private void createBottomPanel() {
+        JPanel panelBottom = new JPanel(new BorderLayout());
+        panelBottom.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        lblImagePreview = new JLabel("Aucune image sélectionnée", JLabel.CENTER);
+        lblImagePreview.setVerticalAlignment(JLabel.CENTER);
+        lblImagePreview.setHorizontalAlignment(JLabel.CENTER);
+        lblImagePreview.setBorder(BorderFactory.createTitledBorder("Image sélectionnée"));
+
+        panelBottom.add(lblImagePreview, BorderLayout.CENTER);
+
+        add(panelBottom, BorderLayout.SOUTH);
+    }
+
+    /**
+     * Affiche l'image sélectionnée.
+     *
+     * @param file Le fichier image sélectionné.
+     */
+    private void displaySelectedImage(File file) {
+        try {
+            if (file.exists() && (file.getName().toLowerCase().endsWith(".png") ||
+                    file.getName().toLowerCase().endsWith(".jpeg") ||
+                    file.getName().toLowerCase().endsWith(".jpg") ||
+                    file.getName().toLowerCase().endsWith(".webp"))) {
+                BufferedImage image = ImageIO.read(file);
+                if (image != null) {
+                    Image scaledImage = image.getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+                    lblImagePreview.setIcon(new ImageIcon(scaledImage));
+                    lblImagePreview.setText("");
+                } else {
+                    lblImagePreview.setIcon(null);
+                    lblImagePreview.setText("Format non pris en charge.");
+                }
+            } else {
+                lblImagePreview.setIcon(null);
+                lblImagePreview.setText("Fichier non pris en charge ou inexistant.");
+            }
+        } catch (IOException ex) {
+            lblImagePreview.setIcon(null);
+            lblImagePreview.setText("Erreur lors du chargement de l'image.");
+            ex.printStackTrace();
+        }
+    }
+
+    private void chargerRepertoire() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File selectedDirectory = fileChooser.getSelectedFile();
+            manageGUI.loadDirectory(selectedDirectory);
+        }
+    }
+
+    private void afficherStatsFichier() {
+        int selectedRow = tableFiles.getSelectedRow();
+        if (selectedRow != -1) {
+            String filePath = (String) tableModel.getValueAt(selectedRow, 2);
+            manageGUI.viewFileStatistics(new File(filePath));
+        } else {
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner un fichier dans le tableau.", "Alerte", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private void montrerMetadata() {
+        int selectedRow = tableFiles.getSelectedRow();
+        if (selectedRow != -1) {
+            String filePath = (String) tableModel.getValueAt(selectedRow, 2);
+            manageGUI.viewMetadata(new File(filePath));
+        } else {
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner un fichier dans le tableau.", "Alerte", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private void onSnapshotSave() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Sauvegarder Snapshot");
+
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            try {
+				manageGUI.saveSnapshot(selectedFile.getAbsolutePath());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
+    }
+
+    private void onSnapshotCompare() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Charger Snapshot pour Comparaison");
+
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            try {
+				manageGUI.compareSnapshot(selectedFile.getAbsolutePath());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
+    }
+}
+
+
+
+// File: ./src/GUI/MainGui.java
+package GUI;
+
+
+import javax.swing.SwingUtilities;
+
+/**
+ * Classe principale pour lancer l'interface graphique de l'application.
+ *
+ * Cette classe contient le point d'entrée principal pour exécuter l'application
+ * avec une interface utilisateur basée sur Swing.
+ *
+ * @author Gaetan et Yanis
+ */
+public class MainGui {
+
+    /**
+     * Point d'entrée principal de l'application.
+     *
+     * Cette méthode initialise et lance l'interface graphique de l'application.
+     *
+     * @param args Les arguments de ligne de commande (non utilisés).
+     */
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            GuiGraphique gui = new GuiGraphique();
+            gui.setVisible(true);
+        });
+    }
+}
+
+
+
 // File: ./src/snapshot/Difference.java
 package snapshot;
 
