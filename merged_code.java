@@ -24,10 +24,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.util.Date;
+import java.util.Objects;
 
-/**
- * Classe représentant un fichier image avec ses métadonnées et ses statistiques.
- */
 public class Fichier implements Serializable {
     private static final long serialVersionUID = 1L;
     private File file; // Instance de File représentant le fichier
@@ -35,22 +33,13 @@ public class Fichier implements Serializable {
     private StatistiquesFichier statistiques; // Statistiques associées au fichier
     private MetaDonnees metaDonnees; // Métadonnées associées au fichier
 
-    /**
-     * Constructeur.
-     * Initialise le fichier, son nom, ses métadonnées et ses statistiques.
-     * @param file Le fichier à manipuler.
-     */
     public Fichier(File file) {
         this.file = file;
-        this.nom = file.getName(); // Initialise le nom du fichier
-        this.metaDonnees = extraireMetaDonnees(); // Extrait les métadonnées du fichier
-        this.statistiques = calculerStatistiques(); // Calcule les statistiques du fichier
+        this.nom = file.getName();
+        this.metaDonnees = extraireMetaDonnees();
+        this.statistiques = calculerStatistiques();
     }
 
-    /**
-     * Calcule les statistiques du fichier.
-     * @return Un objet StatistiquesFichier contenant les statistiques.
-     */
     private StatistiquesFichier calculerStatistiques() {
         try {
             String typeMime = Files.probeContentType(file.toPath());
@@ -63,10 +52,6 @@ public class Fichier implements Serializable {
         }
     }
 
-    /**
-     * Extrait les métadonnées du fichier.
-     * @return Un objet MetaDonnees contenant les informations extraites.
-     */
     private MetaDonnees extraireMetaDonnees() {
         MetaDonnees metaDonnees = new MetaDonnees();
         try {
@@ -77,7 +62,6 @@ public class Fichier implements Serializable {
                     String tagName = tag.getTagName();
                     String tagValue = tag.getDescription();
 
-                    // Extraction des métadonnées pertinentes
                     switch (tagName) {
                         case "Image Width":
                             metaDonnees.getDimensions()[0] = Integer.parseInt(tagValue.replaceAll("\\D+", ""));
@@ -115,33 +99,46 @@ public class Fichier implements Serializable {
         return metaDonnees;
     }
 
-    /**
-     * Vérifie si le type MIME du fichier est valide.
-     * @return true si le type MIME est valide, false sinon.
-     */
     public boolean verifierTypeMIME() {
         String type = statistiques.getTypeMime();
         return type.equals("image/jpeg") || type.equals("image/png") || type.equals("image/webp");
     }
 
-    // Getters
     public String getNom() {
         return nom;
     }
 
     public StatistiquesFichier getStatistiques() {
-        if (this.statistiques == null) {
-            this.statistiques = calculerStatistiques();
-        }
-        return this.statistiques;
+        return statistiques;
     }
-
 
     public MetaDonnees getMetaDonnees() {
         return metaDonnees;
     }
 
-    // toString
+    // Nouvelle méthode : Retourne le chemin relatif du fichier
+    public String getCheminRelatif() {
+        return file.getPath();
+    }
+
+    // Méthode equals pour comparaison dans Difference
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Fichier fichier = (Fichier) o;
+        return Objects.equals(getCheminRelatif(), fichier.getCheminRelatif());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getCheminRelatif());
+    }
+    public StatistiquesFichier getStatFichier() {
+        return this.statistiques; // Si `statistiques` est l'attribut de type `StatistiquesFichier`.
+    }
+
+
     @Override
     public String toString() {
         return "Fichier{" +
@@ -151,8 +148,6 @@ public class Fichier implements Serializable {
                 '}';
     }
 }
-
-
 
 
 // File: ./src/data/StatistiquesFichier.java
@@ -205,6 +200,11 @@ public class StatistiquesFichier implements Serializable {
     public String getDateModification() {
         return dateModification;
     }
+
+    public String getType() {
+        return this.typeMime; // Assuming `typeMime` stores the MIME type
+    }
+
 
     /**
      * Retourne une représentation textuelle des statistiques du fichier.
@@ -575,7 +575,7 @@ import java.io.File;
 import java.io.IOException;
 
 public class CLI {
-//test
+
     public static void main(String[] args) {
         if (args.length == 0) {
             System.out.println("Erreur : Aucun argument fourni.");
@@ -992,71 +992,110 @@ public class ControleurF  implements Serializable {
 // File: ./src/snapshot/Difference.java
 package snapshot;
 
-
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.List;
+
+import data.Fichier;
+
 
 public class Difference implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    private List<String> fichiersAjoutes;
-    private List<String> fichiersSupprimes;
+    private static final long serialVersionUID = 1L; // Identifiant pour la sérialisation
+    private ArrayList<Fichier> fichiersAjoutes;
+    private ArrayList<Fichier> fichiersSupprimes;
 
-    // Constructeur
+	public static long getSerialversionuid() {
+		return serialVersionUID;
+	}
+
+	// Constructeur
     public Difference() {
         this.fichiersAjoutes = new ArrayList<>();
         this.fichiersSupprimes = new ArrayList<>();
     }
 
-    // Ajoute un fichier à la liste des fichiers ajoutés
-    public void ajouterFichierAjoute(String fichier) {
+    // Ajouts
+    public void ajouterFichierAjoute(Fichier fichier) {
         fichiersAjoutes.add(fichier);
     }
 
-    // Ajoute un fichier à la liste des fichiers supprimés
-    public void ajouterFichierSupprime(String fichier) {
+    public void ajouterFichierSupprime(Fichier fichier) {
         fichiersSupprimes.add(fichier);
     }
 
-    // Afficher les différences
+    // Affichage des différences
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("=== Différences détectées ===\n");
-
-        sb.append("Fichiers ajoutés :\n");
-        for (String fichier : fichiersAjoutes) {
-            sb.append("  - ").append(fichier).append("\n");
+        // Vérifier si aucune différence n'est détectée
+        if (fichiersAjoutes.isEmpty() && fichiersSupprimes.isEmpty()) {
+            sb.append("Aucune différence détectée.");
+            return sb.toString();
         }
 
-        sb.append("Fichiers supprimés :\n");
-        for (String fichier : fichiersSupprimes) {
-            sb.append("  - ").append(fichier).append("\n");
+        sb.append("Différences détectées :\n");
+
+        // Afficher les fichiers ajoutés avec leur nombre
+        sb.append(String.format("Fichiers ajoutés (%d) :\n", fichiersAjoutes.size()));
+        if (fichiersAjoutes.isEmpty()) {
+            sb.append("  Aucun fichier ajouté.\n");
+        } else {
+            for (Fichier fichier : fichiersAjoutes) {
+                sb.append(String.format("  - Nom : %-20s Type : %-15s Chemin : %s\n",
+                        fichier.getNom(),
+                        fichier.getStatFichier().getType(),
+                        fichier.getCheminRelatif()));
+            }
+        }
+
+        // Afficher les fichiers supprimés avec leur nombre
+        sb.append(String.format("Fichiers supprimés (%d) :\n", fichiersSupprimes.size()));
+        if (fichiersSupprimes.isEmpty()) {
+            sb.append("  Aucun fichier supprimé.\n");
+        } else {
+            for (Fichier fichier : fichiersSupprimes) {
+                sb.append(String.format("  - Nom : %-20s Type : %-15s Chemin : %s\n",
+                        fichier.getNom(),
+                        fichier.getStatFichier().getType(),
+                        fichier.getCheminRelatif()));
+            }
         }
 
         return sb.toString();
     }
+
+    public ArrayList<Fichier> getFichiersAjoutes() {
+		return fichiersAjoutes;
+	}
+
+	public void setFichiersAjoutes(ArrayList<Fichier> fichiersAjoutes) {
+		this.fichiersAjoutes = fichiersAjoutes;
+	}
+
+	public ArrayList<Fichier> getFichiersSupprimes() {
+		return fichiersSupprimes;
+	}
+
+	public void setFichiersSupprimes(ArrayList<Fichier> fichiersSupprimes) {
+		this.fichiersSupprimes = fichiersSupprimes;
+	}
 }
 
 
 // File: ./src/snapshot/Snapshot.java
 package snapshot;
 
-
-import data.Repertoire;
-import data.Fichier;
-
 import java.io.*;
+import data.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Snapshot implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    private Repertoire repertoire;
-    private String dateSnapshot;
+    private static final long serialVersionUID = 1L; // Identifiant pour la sérialisation
+    private Repertoire repertoire; // Répertoire capturé
+    private String dateSnapshot;   // Date de création du snapshot
 
     // Constructeur
     public Snapshot(Repertoire repertoire, String dateSnapshot) {
@@ -1067,58 +1106,69 @@ public class Snapshot implements Serializable {
     // Sauvegarder le snapshot dans un fichier binaire
     public void sauvegarder(String cheminFichier) {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(cheminFichier))) {
-            oos.writeObject(this);
-            System.out.println("Snapshot sauvegardé dans : " + cheminFichier);
+            oos.writeObject(this); // Sérialisation de l'objet Snapshot
+            System.out.println("Snapshot sauvegardé avec succès dans : " + cheminFichier);
         } catch (IOException e) {
-            System.err.println("Erreur lors de la sauvegarde du snapshot : " + e.getMessage());
+            System.out.println("Erreur lors de la sauvegarde du snapshot : " + e.getMessage());
         }
     }
 
-    // Charger un snapshot depuis un fichier binaire
+    // Charger un snapshot à partir d'un fichier binaire
     public static Snapshot charger(String cheminFichier) {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(cheminFichier))) {
             return (Snapshot) ois.readObject();
+        } catch (FileNotFoundException e) {
+            System.out.println("Erreur : Fichier snapshot introuvable : " + cheminFichier);
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Erreur lors du chargement du snapshot : " + e.getMessage());
+            System.out.println("Erreur lors du chargement du snapshot : " + e.getMessage());
         }
         return null;
     }
 
-    // Comparer deux snapshots pour détecter les différences
+    // Comparer deux snapshots pour générer une différence
     public Difference comparer(Snapshot ancienSnapshot) {
         Difference difference = new Difference();
 
-        List<Fichier> anciensFichiers = ancienSnapshot.getRepertoire().getFichiers();
+        // Récupérer les fichiers des deux snapshots
+        List<Fichier> anciensFichiers = ancienSnapshot.repertoire.getFichiers();
         List<Fichier> actuelsFichiers = this.repertoire.getFichiers();
 
-        // Fichiers ajoutés
+        // Identifier les fichiers ajoutés
         for (Fichier actuel : actuelsFichiers) {
             boolean existe = anciensFichiers.stream()
-                    .anyMatch(ancien -> ancien.getNom().equals(actuel.getNom()));
+                    .anyMatch(ancien -> ancien.getCheminRelatif().equals(actuel.getCheminRelatif()));
             if (!existe) {
-                difference.ajouterFichierAjoute(actuel.getNom());
+                difference.ajouterFichierAjoute(actuel);
             }
         }
 
-        // Fichiers supprimés
+        // Identifier les fichiers supprimés
         for (Fichier ancien : anciensFichiers) {
             boolean existe = actuelsFichiers.stream()
-                    .anyMatch(actuel -> actuel.getNom().equals(ancien.getNom()));
+                    .anyMatch(actuel -> actuel.getCheminRelatif().equals(ancien.getCheminRelatif()));
             if (!existe) {
-                difference.ajouterFichierSupprime(ancien.getNom());
+                difference.ajouterFichierSupprime(ancien);
             }
         }
 
         return difference;
     }
 
-    // Getters
+    // Getters et Setters
     public Repertoire getRepertoire() {
         return repertoire;
     }
 
+    public void setRepertoire(Repertoire repertoire) {
+        this.repertoire = repertoire;
+    }
+
     public String getDateSnapshot() {
         return dateSnapshot;
+    }
+
+    public void setDateSnapshot(String dateSnapshot) {
+        this.dateSnapshot = dateSnapshot;
     }
 }
 
